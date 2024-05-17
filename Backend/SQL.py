@@ -1,5 +1,6 @@
 import psycopg2
 import hashlib
+import base64
 
 class SQL:
     def __init__(self):
@@ -15,8 +16,17 @@ class SQL:
         )
 
         self.cursor = self.conn.cursor()
+    
+    
 
-    def login(self, user : str, password : str, role: int) -> bool:
+
+    # Function to encode image file to Base64 string
+    def encode_image_to_base64(image_path):
+        with open(image_path, 'rb') as image_file:
+            base64_string = base64.b64encode(image_file.read()).decode('utf-8')
+        return base64_string
+    
+    def login(self, user : str, password : str, role: str) -> bool:
         """
         This function is used to authenticate a user by asking for their username and password.
         
@@ -27,9 +37,9 @@ class SQL:
         Returns:
         bool: True if the login is successful, False otherwise.
         """
-        if role == 1:
+        if role == '1':
             role = "Committee"
-        elif role == 2:
+        elif role == '2':
             role = "Student"
         login_state = False
         

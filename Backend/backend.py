@@ -1,7 +1,12 @@
 from flask import Flask, request, jsonify
 from SQL import SQL
+import predict as isus
+from flask_cors import CORS
+import numpy as np
+import os
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/")
 def index():
@@ -18,7 +23,8 @@ def regis():
     surname = json_body["surname"]
     username = json_body["username"]
     password = json_body["password"]
-    agent.register(name, surname, username, password, 2)
+    role = json_body["role"]
+    agent.register(name, surname, username, password, role)
     '''
     Your Database Query
     '''
@@ -26,7 +32,8 @@ def regis():
         "name" : name,
         "surname" : surname,
         "username" : username,
-        "password" : password 
+        "password" : password,
+        "role" : role
     }
 
 @app.route("/login", methods=['GET'])
@@ -34,8 +41,9 @@ def regis():
 def get_user():
     username = request.args.get('username')
     password = request.args.get('password')
+    role = request.args.get('role')
     try: 
-        success = agent.login(username, password, 2)
+        success = agent.login(username, password, role)
         if success:
             return jsonify({"message": "Successful"}), 200
         else:
@@ -65,7 +73,7 @@ def all_student():
         "status" : True,
         "content" : "All Student"
     }
-@app.route("/personal_student", methods=['GET'])
+@app.route("/get_user", methods=['GET'])
 def personal_student():
     '''
     Your Database Query
@@ -127,12 +135,30 @@ def student_answer():
 def answer():
     SID = request.args.get('SID')
     QID = request.args.get('QID')
-    ans = agent.get_answer(QID, SID)
+    ans = agent.get_answer(QID,SID)
+    print(ans)
+    print("Sent")
     '''
     Your Database Query
     '''
     
     return jsonify({"message": ans}), 200
+
+@app.route("/pred", methods=['GET'])
+def pred():
+    path = r"C:\Anacoda_En\SuperAI\web_last\Backend\test_application\test_application"
+    if path.endswith('.npy'):
+        brain = np.load()
+        answer = isus.pred(brain)
+        return jsonify({"message": answer}), 200
+    else:
+        answers = []
+        many_list = isus.load_test_data(path)
+        for brain in many_list:
+            answer = isus.pred(brain)
+            answers.append(answer)
+        return jsonify({"message": str(answers)}), 200
+        
     
 if __name__ =="__main__":
     agent = SQL()

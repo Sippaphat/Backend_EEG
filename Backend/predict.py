@@ -9,6 +9,11 @@ from scipy.signal import iirnotch, filtfilt, butter
 import pywt
 from functools import partial
 from pywt import wavedec, swt, waverec, threshold
+import sys
+import io
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def normalization(data: List[Union[pd.DataFrame, np.ndarray]], chan_names: List[str], per_channel: bool = True, clamp: float = 20.0) -> List[Union[pd.DataFrame, np.ndarray]]:
     if per_channel:
@@ -170,10 +175,35 @@ def _denoise(channel_data, type, wavelet, mode, level, method):
 
 # Set the path to the "test" folder
 #test_folder = 'test'
+
+def load_test_data(test_folder: str) -> List[np.ndarray]:
+    predictions = []
+    for root, dirs, files in os.walk(test_folder):
+        for file in files:
+            if file.endswith('.npy'):
+                
+                # Load data and labels for the current subject, session, part, and trial
+                data = np.load(os.path.join(root, file))
+                # Extract the main data segments (3 seconds) based on label timestamps
+                segment_duration = 3  # Duration of the main data segment in seconds
+                skip_duration = 2  # Duration of data to skip before and after the main segment
+                sample_rate = 250  # Sampling rate of the EEG data
+                segment_samples = segment_duration * sample_rate
+            
+                start_index = 500  # Skip the data before the main segment
+                #start_index += skip_samples  # Skip the data before the main segment
+                
+                data_segments = data[:, :8]  # Extract the first 8 channels
+                predictions.append(data_segments)
+    
+    return predictions
+
+
+
+
 def pred(test_data):
     # Set the path to the best model file
-    best_model_path = 'best_model.keras'
-
+    best_model_path = r'C:\Anacoda_En\SuperAI\web_last\Backend\best_model.keras'
     # Set the path to the submission file
     # submission_file = 'sample_submission.csv'
 
@@ -181,7 +211,7 @@ def pred(test_data):
     best_model = tf.keras.models.load_model(best_model_path)
 
     # Initialize a list to store the predictions
-    predictions = []
+    
 
     # Define the segment duration, skip duration, and sampling rate
     segment_duration = 3  # Duration of the main data segment in seconds
@@ -210,19 +240,31 @@ def pred(test_data):
     test_data = bandpass_filter(test_data, chan_names, fs, low=10.0, high=22.0, order=4)
 
     test_data = np.expand_dims(test_data[0], axis=0)
-
+    #print(test_data.shape)
+    #print(best_model)
     # Make predictions
     pred_prob = best_model.predict(test_data)
+    
     pred_label = np.argmax(pred_prob, axis=1)[0]
 
     # Map the predicted label back to the original label value
     label_map_inv = {0: 110, 1: 120, 2: 150}
     pred_label = label_map_inv[pred_label]
-    predictions.append(pred_label)
+    #predictions.append(pred_label)
 
-    print(predictions)
-    print("Inference completed. Submission file 'submission.csv' updated with predictions.")
+    #print(pred_label)
+    #print("Inference completed. Submission file 'submission.csv' updated with predictions.")
+    return pred_label
     
 if __name__ == '__main__':
-    test_data = np.load('test.npy')
-    pred(test_data)
+    path = r"C:\Anacoda_En\SuperAI\web_last\Backend\test_application\test_application"
+    if path.endswith('.npy'):
+        brain = np.load()
+        answer = pred(brain)
+    else:
+        answers = []
+        many_list = load_test_data(path)
+        for brain in many_list:
+            answer = pred(brain)
+            answers.append(answer)
+    print(answers)
